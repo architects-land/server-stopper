@@ -52,6 +52,8 @@ func main() {
 		os.Exit(0)
 	}()
 
+	slog.Info("Socket started")
+
 	for {
 		conn, err := socket.Accept()
 		if err != nil {
@@ -114,6 +116,7 @@ func updateConnected(n int) {
 		}
 		quit <- true
 	}
+	slog.Info("updating number connected", "new", n, "old", numberConnected)
 	numberConnected = n
 	if n != 0 {
 		return
