@@ -6,14 +6,19 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 )
 
 var (
 	useSystemD bool
 	socketPath string
+
+	numberConnected int
+	quit            chan interface{}
 )
 
 func init() {
@@ -86,8 +91,58 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
+	updateConnected(nbr)
+
 	_, err = conn.Write([]byte("0"))
 	if err != nil {
 		slog.Error(err.Error(), "position", "cannot write response")
+	}
+}
+
+func updateConnected(n int) {
+	if numberConnected == 0 {
+		if n == 0 {
+			slog.Warn("numberConnected already set to 0")
+			return
+		}
+		quit <- true
+	}
+	numberConnected = n
+	if n != 0 {
+		return
+	}
+
+	ticker := time.NewTicker(5 * time.Minute)
+	if quit != nil {
+		quit <- true
+	}
+	quit = make(chan interface{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				stop()
+			case <-quit:
+				ticker.Stop()
+				close(quit)
+				return
+			}
+		}
+	}()
+}
+
+func stop() {
+	quit <- true
+	var cli string
+	if useSystemD {
+		cli = "systemctl poweroff"
+	} else {
+		cli = "poweroff"
+	}
+	cmd := exec.Command(cli)
+	cmd.Stdout = os.Stdout
+	err := cmd.Run()
+	if err != nil {
+		panic(err)
 	}
 }
