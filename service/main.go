@@ -32,7 +32,7 @@ func main() {
 	flag.Parse()
 
 	if minuteBeforePowerOff < 1 {
-		slog.Error("minutes before poweroff is < 1")
+		slog.Error("Minutes before poweroff is < 1")
 		return
 	}
 
@@ -73,39 +73,22 @@ func handleConnection(conn net.Conn) {
 	n, err := conn.Read(buf)
 	if err != nil {
 		slog.Error(err.Error(), "position", "cannot read")
-		_, err = conn.Write([]byte("1"))
-		if err != nil {
-			slog.Error(err.Error(), "position", "cannot write error")
-		}
 		return
 	}
 
 	s := string(buf[:n])
 	nbr, err := strconv.Atoi(s)
 	if err != nil {
-		slog.Warn(err.Error(), "position", "converting to int")
-		_, err = conn.Write([]byte("2"))
-		if err != nil {
-			slog.Error(err.Error(), "position", "cannot write error")
-		}
+		slog.Error(err.Error(), "position", "converting to int")
 		return
 	}
 
 	if nbr < 0 {
 		slog.Warn("negative number")
-		_, err = conn.Write([]byte("3"))
-		if err != nil {
-			slog.Error(err.Error(), "position", "cannot write error")
-		}
 		return
 	}
 
 	updateConnected(nbr)
-
-	_, err = conn.Write([]byte("0"))
-	if err != nil {
-		slog.Error(err.Error(), "position", "cannot write response")
-	}
 }
 
 func updateConnected(n int) {
@@ -116,11 +99,12 @@ func updateConnected(n int) {
 		}
 		quit <- true
 	}
-	slog.Info("updating number connected", "new", n, "old", numberConnected)
+	slog.Info("Updating number connected", "new", n, "old", numberConnected)
 	numberConnected = n
 	if n != 0 {
 		return
 	}
+	slog.Info("Starting timer to shutdown the server")
 
 	ticker := time.NewTicker(time.Duration(minuteBeforePowerOff) * time.Minute)
 	if quit != nil {
@@ -132,7 +116,12 @@ func updateConnected(n int) {
 			select {
 			case <-ticker.C:
 				stop()
+				// called if there is an error
+				ticker.Stop()
+				close(quit)
+				return
 			case <-quit:
+				slog.Info("Stopping timer to shutdown the server")
 				ticker.Stop()
 				close(quit)
 				return
@@ -142,7 +131,7 @@ func updateConnected(n int) {
 }
 
 func stop() {
-	quit <- true
+	slog.Info("Stopping the server...")
 	var cli string
 	if useSystemD {
 		cli = "systemctl poweroff"
