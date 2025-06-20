@@ -116,9 +116,6 @@ func updateConnected(n int) {
 			select {
 			case <-ticker.C:
 				stop()
-				// called if there is an error
-				ticker.Stop()
-				close(quit)
 				return
 			case <-quit:
 				slog.Info("Stopping timer to shutdown the server")
@@ -132,16 +129,19 @@ func updateConnected(n int) {
 
 func stop() {
 	slog.Info("Stopping the server...")
-	var cli string
+	var cmd *exec.Cmd
 	if useSystemD {
-		cli = "systemctl poweroff"
+		cmd = exec.Command("systemctl", "poweroff")
 	} else {
-		cli = "poweroff"
+		cmd = exec.Command("poweroff")
 	}
-	cmd := exec.Command(cli)
 	cmd.Stdout = os.Stdout
 	err := cmd.Run()
 	if err != nil {
+		err2 := os.Remove(socketPath)
+		if err2 != nil {
+			slog.Error(err2.Error(), "position", "cannot remove socket")
+		}
 		panic(err)
 	}
 }
