@@ -14,20 +14,27 @@ import (
 )
 
 var (
-	useSystemD bool
-	socketPath string
+	useSystemD           = false
+	socketPath           = "/run/service-stopper.sock"
+	minuteBeforePowerOff = 5
 
 	numberConnected int
 	quit            chan interface{}
 )
 
 func init() {
-	flag.BoolVar(&useSystemD, "systemd", false, "use systemd")
-	flag.StringVar(&socketPath, "socket", "/run/service-stopper.sock", "path to socket")
+	flag.BoolVar(&useSystemD, "systemd", useSystemD, "use systemd")
+	flag.StringVar(&socketPath, "socket", socketPath, "path to socket")
+	flag.IntVar(&minuteBeforePowerOff, "minute-before-poweroff", minuteBeforePowerOff, "minutes before poweroff")
 }
 
 func main() {
 	flag.Parse()
+
+	if minuteBeforePowerOff < 1 {
+		slog.Error("minutes before poweroff is < 1")
+		return
+	}
 
 	socket, err := net.Listen("unix", socketPath)
 	if err != nil {
@@ -112,7 +119,7 @@ func updateConnected(n int) {
 		return
 	}
 
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(time.Duration(minuteBeforePowerOff) * time.Minute)
 	if quit != nil {
 		quit <- true
 	}
