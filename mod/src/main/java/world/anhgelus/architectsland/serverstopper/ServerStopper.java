@@ -2,6 +2,7 @@ package world.anhgelus.architectsland.serverstopper;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,8 @@ public class ServerStopper implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("Initializing Server Stopper");
+
+        ServerLifecycleEvents.SERVER_STARTED.register(this::sendPlayersConnected);
 
         ServerPlayerEvents.JOIN.register(player -> {
             final var server = player.getServer();
