@@ -1,0 +1,20 @@
+[Unit]
+Description=Server Stopper service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+# root is needed to poweroff the server
+User=root
+# modify the working directory if needed
+WorkingDirectory=/var/server-stopper
+
+# customize the CLI
+# keep -systemd because this is a systemd file
+ExecStart=/var/server-stopper/service -systemd
+
+Restart=always
+#RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
