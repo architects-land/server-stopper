@@ -15,7 +15,7 @@ import (
 
 var (
 	useSystemD           = false
-	socketPath           = "/run/service-stopper.sock"
+	socketPath           = "/run/server-stopper.sock"
 	minuteBeforePowerOff = 5
 
 	numberConnected = -1
