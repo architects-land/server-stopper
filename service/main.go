@@ -18,7 +18,7 @@ var (
 	socketPath           = "/run/service-stopper.sock"
 	minuteBeforePowerOff = 5
 
-	numberConnected int
+	numberConnected = -1
 	quit            chan interface{}
 )
 
