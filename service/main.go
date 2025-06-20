@@ -3,9 +3,11 @@ package main
 import (
 	"flag"
 	"log"
+	"log/slog"
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 )
 
@@ -39,29 +41,53 @@ func main() {
 	}()
 
 	for {
-		// Accept an incoming connection.
 		conn, err := socket.Accept()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// Handle the connection in a separate goroutine.
-		go func(conn net.Conn) {
-			defer conn.Close()
-			// Create a buffer for incoming data.
-			buf := make([]byte, 4096)
+		// Sync is used here because the socket must be sync
+		handleConnection(conn)
+	}
+}
 
-			// Read data from the connection.
-			n, err := conn.Read(buf)
-			if err != nil {
-				log.Fatal(err)
-			}
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
+	// Create a buffer for incoming data.
+	buf := make([]byte, 4096)
 
-			// Echo the data back to the connection.
-			_, err = conn.Write(buf[:n])
-			if err != nil {
-				log.Fatal(err)
-			}
-		}(conn)
+	n, err := conn.Read(buf)
+	if err != nil {
+		slog.Error(err.Error(), "position", "cannot read")
+		_, err = conn.Write([]byte("1"))
+		if err != nil {
+			slog.Error(err.Error(), "position", "cannot write error")
+		}
+		return
+	}
+
+	s := string(buf[:n])
+	nbr, err := strconv.Atoi(s)
+	if err != nil {
+		slog.Warn(err.Error(), "position", "converting to int")
+		_, err = conn.Write([]byte("2"))
+		if err != nil {
+			slog.Error(err.Error(), "position", "cannot write error")
+		}
+		return
+	}
+
+	if nbr < 0 {
+		slog.Warn("negative number")
+		_, err = conn.Write([]byte("3"))
+		if err != nil {
+			slog.Error(err.Error(), "position", "cannot write error")
+		}
+		return
+	}
+
+	_, err = conn.Write([]byte("0"))
+	if err != nil {
+		slog.Error(err.Error(), "position", "cannot write response")
 	}
 }
