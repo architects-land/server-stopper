@@ -18,13 +18,18 @@ var (
 	socketPath           = "/run/server-stopper.sock"
 	minuteBeforePowerOff = 5
 
+	stopOnlyMinecraft = false
+	minecraftService  = "minecraft.service"
+
 	numberConnected = -1
 	quit            chan interface{}
 )
 
 func init() {
 	flag.BoolVar(&useSystemD, "systemd", useSystemD, "use systemd")
+	flag.BoolVar(&stopOnlyMinecraft, "stop-only-minecraft", stopOnlyMinecraft, "shutdown only minecraft")
 	flag.StringVar(&socketPath, "socket", socketPath, "path to socket")
+	flag.StringVar(&minecraftService, "minecraft-service", minecraftService, "name of the minecraft service")
 	flag.IntVar(&minuteBeforePowerOff, "minute-before-poweroff", minuteBeforePowerOff, "minutes before poweroff")
 }
 
@@ -116,6 +121,8 @@ func updateConnected(n int) {
 			select {
 			case <-ticker.C:
 				stop()
+				ticker.Stop()
+				close(quit)
 				return
 			case <-quit:
 				slog.Info("Stopping timer to shutdown the server")
@@ -130,6 +137,17 @@ func updateConnected(n int) {
 func stop() {
 	slog.Info("Stopping the server...")
 	var cmd *exec.Cmd
+	if stopOnlyMinecraft {
+		if !useSystemD {
+			slog.Error("stopping only minecraft is not supported without systemd")
+			return
+		}
+		cmd = exec.Command("systemctl", "stop", minecraftService)
+		if err := cmd.Run(); err != nil {
+			slog.Error(err.Error())
+		}
+		return
+	}
 	if useSystemD {
 		cmd = exec.Command("systemctl", "poweroff")
 	} else {
