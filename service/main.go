@@ -45,6 +45,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	if err = os.Chmod(socketPath, 0777); err != nil {
+		panic(err)
+	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
