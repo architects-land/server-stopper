@@ -120,20 +120,15 @@ func updateConnected(n int) {
 	}
 	quit = make(chan interface{})
 	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				stop()
-				ticker.Stop()
-				close(quit)
-				return
-			case <-quit:
-				slog.Info("Stopping timer to shutdown the server")
-				ticker.Stop()
-				close(quit)
-				return
-			}
+		select {
+		case <-ticker.C:
+			stop()
+		case <-quit:
+			slog.Info("Stopping timer to shutdown the server")
 		}
+		ticker.Stop()
+		close(quit)
+		return
 	}()
 }
 
