@@ -128,7 +128,6 @@ func updateConnected(n int) {
 		}
 		ticker.Stop()
 		close(quit)
-		return
 	}()
 }
 

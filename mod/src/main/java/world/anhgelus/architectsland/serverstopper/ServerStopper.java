@@ -25,7 +25,7 @@ public class ServerStopper implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Initializing Server Stopper");
 
-        ServerLifecycleEvents.SERVER_STARTED.register(this::sendPlayersConnected);
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> sendPlayersConnected(server.getPlayerManager().getPlayerList().size()));
 
         ServerPlayerEvents.JOIN.register(player -> {
             final var server = player.getServer();
@@ -33,7 +33,7 @@ public class ServerStopper implements ModInitializer {
                 LOGGER.warn("Server is null during join");
                 return;
             }
-            sendPlayersConnected(server);
+            sendPlayersConnected(server.getPlayerManager().getPlayerList().size());
         });
 
         ServerPlayerEvents.LEAVE.register(player -> {
@@ -42,12 +42,15 @@ public class ServerStopper implements ModInitializer {
                 LOGGER.warn("Server is null during leave");
                 return;
             }
-            sendPlayersConnected(server);
+            sendPlayersConnected(server.getPlayerManager().getPlayerList().size() - 1);
         });
     }
 
-    private void sendPlayersConnected(MinecraftServer server) {
-        final var n = server.getPlayerManager().getPlayerList().size();
+    private void sendPlayersConnected(int n) {
+        if (n < 0) {
+            LOGGER.warn("Number of player connected is below 0");
+            n = 0;
+        }
         try (final var channel = SocketChannel.open(StandardProtocolFamily.UNIX)) {
             final var path = Path.of(CONFIG.socketPath);
             channel.connect(UnixDomainSocketAddress.of(path));
