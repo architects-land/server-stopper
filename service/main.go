@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"github.com/willroberts/minecraft-client"
 	"log"
 	"log/slog"
 	"net"
@@ -23,6 +25,10 @@ var (
 
 	numberConnected = -1
 	quit            chan interface{}
+
+	stopMinecraft = false
+	password      = ""
+	rconPort      = 25575
 )
 
 func init() {
@@ -31,10 +37,31 @@ func init() {
 	flag.StringVar(&socketPath, "socket", socketPath, "path to socket")
 	flag.StringVar(&minecraftService, "minecraft-service", minecraftService, "name of the minecraft service")
 	flag.IntVar(&minuteBeforePowerOff, "minute-before-poweroff", minuteBeforePowerOff, "minutes before poweroff")
+
+	flag.BoolVar(&stopMinecraft, "stop-minecraft", stopMinecraft, "stop Minecraft via the RCON")
+	flag.StringVar(&password, "rcon-password", password, "password to use to connect to the Minecraft server via RCON")
+	flag.IntVar(&rconPort, "rcon-port", rconPort, "port to use to connect to the Minecraft server via RCON")
 }
 
 func main() {
 	flag.Parse()
+
+	if stopMinecraft {
+		client, err := minecraft.NewClient(fmt.Sprintf("127.0.0.1:%d", rconPort))
+		if err != nil {
+			panic(err)
+		}
+		defer client.Close()
+
+		if err = client.Authenticate(password); err != nil {
+			panic(err)
+		}
+
+		if _, err = client.SendCommand("stop"); err != nil {
+			panic(err)
+		}
+		return
+	}
 
 	if minuteBeforePowerOff < 1 {
 		slog.Error("Minutes before poweroff is < 1")
