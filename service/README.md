@@ -17,7 +17,7 @@ CLI args:
 A service file is provided. You can compile the program with `go build .` (Go 1.24+).
 
 You can stop the Minecraft server via the RCON with the arg `-stop-minecraft`. 
-You must set a password with the arg `-rcon-password` and if you are using a non-standard port, you can set it with
-`-rcon-port`.
+You must set a password with the arg `-rcon-password [password]` and if you are using a non-standard port, you can set 
+it with`-rcon-port [int > 0]`.
 
 Use `github.com/willroberts/minecraft-client` to connect to the RCON.
